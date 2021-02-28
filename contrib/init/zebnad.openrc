@@ -1,0 +1,92 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/zebna/.zebna" ]; then
+	ZEBNAD_DEFAULT_DATADIR="/var/lib/zebna/.zebna"
+else
+	ZEBNAD_DEFAULT_DATADIR="/var/lib/zebnad"
+fi
+
+ZEBNAD_CONFIGFILE=${ZEBNAD_CONFIGFILE:-/etc/zebna/zebna.conf}
+ZEBNAD_PIDDIR=${ZEBNAD_PIDDIR:-/var/run/zebnad}
+ZEBNAD_PIDFILE=${ZEBNAD_PIDFILE:-${ZEBNAD_PIDDIR}/zebnad.pid}
+ZEBNAD_DATADIR=${ZEBNAD_DATADIR:-${ZEBNAD_DEFAULT_DATADIR}}
+ZEBNAD_USER=${ZEBNAD_USER:-${ZEBNA_USER:-zebna}}
+ZEBNAD_GROUP=${ZEBNAD_GROUP:-zebna}
+ZEBNAD_BIN=${ZEBNAD_BIN:-/usr/bin/zebnad}
+ZEBNAD_NICE=${ZEBNAD_NICE:-${NICELEVEL:-0}}
+ZEBNAD_OPTS="${ZEBNAD_OPTS:-${ZEBNA_OPTS}}"
+
+name="Zebna Core Daemon"
+description="Zebna cryptocurrency P2P network daemon"
+
+command="/usr/bin/zebnad"
+command_args="-pid=\"${ZEBNAD_PIDFILE}\" \
+		-conf=\"${ZEBNAD_CONFIGFILE}\" \
+		-datadir=\"${ZEBNAD_DATADIR}\" \
+		-daemon \
+		${ZEBNAD_OPTS}"
+
+required_files="${ZEBNAD_CONFIGFILE}"
+start_stop_daemon_args="-u ${ZEBNAD_USER} \
+			-N ${ZEBNAD_NICE} -w 2000"
+pidfile="${ZEBNAD_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${ZEBNAD_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${ZEBNAD_USER}:${ZEBNAD_GROUP}" \
+	"${ZEBNAD_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${ZEBNAD_USER}:${ZEBNAD_GROUP}" \
+	"${ZEBNAD_PIDDIR}"
+
+	checkpath -f \
+	-o ${ZEBNAD_USER}:${ZEBNAD_GROUP} \
+	-m 0660 \
+	${ZEBNAD_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${ZEBNAD_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run zebnad."
+		eerror "The setting must appear in ${ZEBNAD_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Zebna Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

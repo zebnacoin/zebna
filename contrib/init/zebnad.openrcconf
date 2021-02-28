@@ -1,0 +1,33 @@
+# /etc/conf.d/zebnad: config file for /etc/init.d/zebnad
+
+# Config file location
+#ZEBNAD_CONFIGFILE="/etc/zebna/zebna.conf"
+
+# What directory to write pidfile to?  (created and owned by $ZEBNAD_USER)
+#ZEBNAD_PIDDIR="/var/run/zebnad"
+
+# What filename to give the pidfile
+#ZEBNAD_PIDFILE="${ZEBNAD_PIDDIR}/zebnad.pid"
+
+# Where to write zebnad data (be mindful that the blockchain is large)
+#ZEBNAD_DATADIR="/var/lib/zebnad"
+
+# User and group to own zebnad process
+#ZEBNAD_USER="zebna"
+#ZEBNAD_GROUP="zebna"
+
+# Path to zebnad executable
+#ZEBNAD_BIN="/usr/bin/zebnad"
+
+# Nice value to run zebnad under
+#ZEBNAD_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#ZEBNAD_OPTS=""
+
+# The timeout in seconds OpenRC will wait for zebnad to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+ZEBNAD_SIGTERM_TIMEOUT=60
